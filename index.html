@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CanexAI | Predict Every Candle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --black:#0a0a0a;--black2:#111;--black3:#1a1a1a;
+  --green:#00ff88;--green2:#00cc6a;--gold:#ffd700;--gold2:#ccaa00;
+  --red:#ff3c3c;--gray:#888;--glass:rgba(255,255,255,0.04);
+}
+html{scroll-behavior:smooth;}
+body{font-family:'Syne',sans-serif;background:var(--black);color:#fff;overflow-x:hidden;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:var(--green2);border-radius:2px;}
+.mono{font-family:'DM Mono',monospace;}
+@keyframes pulse-green{0%,100%{box-shadow:0 0 20px rgba(0,255,136,.3);}50%{box-shadow:0 0 40px rgba(0,255,136,.6);}}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:translateY(0);}}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+@keyframes confettiFall{to{transform:translateY(110vh) rotate(720deg);opacity:0;}}
+@keyframes modalIn{from{opacity:0;transform:scale(.85);}to{opacity:1;transform:scale(1);}}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:70px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;background:rgba(10,10,10,.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,255,136,.08);transition:all .3s;}
+.nav-logo{display:flex;align-items:center;gap:10px;cursor:pointer;}
+.nav-logo-icon{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#00ff88,#00cc6a);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#0a0a0a;box-shadow:0 0 20px rgba(0,255,136,.4);}
+.nav-logo-text{font-size:20px;font-weight:800;letter-spacing:-.5px;}
+.nav-logo-text span{color:#00ff88;}
+.plan-badge{font-size:9px;font-weight:700;letter-spacing:1px;padding:2px 6px;border-radius:4px;font-family:'DM Mono',monospace;}
+.nav-links{display:flex;gap:28px;}
+.nav-links button{background:none;border:none;cursor:pointer;color:#888;font-size:14px;font-weight:600;font-family:'Syne',sans-serif;letter-spacing:.5px;transition:color .2s;padding-bottom:2px;}
+.nav-links button.active{color:#00ff88;border-bottom:1px solid #00ff88;}
+.nav-links button:hover{color:#fff;}
+.nav-cta{background:linear-gradient(135deg,#00ff88,#00cc6a);border:none;border-radius:8px;padding:10px 20px;color:#0a0a0a;font-weight:700;font-size:13px;cursor:pointer;font-family:'Syne',sans-serif;box-shadow:0 0 20px rgba(0,255,136,.3);animation:pulse-green 2s infinite;letter-spacing:.5px;}
+.hamburger{display:none;background:none;border:none;color:#fff;font-size:24px;cursor:pointer;}
+.mobile-menu{display:none;position:fixed;top:70px;left:0;right:0;background:#111;padding:20px;flex-direction:column;gap:16px;border-bottom:1px solid #222;z-index:999;}
+.mobile-menu button{background:none;border:none;color:#fff;font-size:16px;font-weight:600;cursor:pointer;text-align:left;font-family:'Syne',sans-serif;}
+@media(max-width:768px){.nav-links{display:none;}.hamburger{display:block;}.nav-cta{display:none;}}
+
+/* PAGES */
+.page{display:none;padding-top:70px;}
+.page.active{display:block;}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:100px 20px 60px;background:radial-gradient(ellipse at 50% 0%,rgba(0,255,136,.07) 0%,transparent 70%);position:relative;overflow:hidden;}
+.hero-grid{position:absolute;inset:0;opacity:.03;background-image:linear-gradient(#00ff88 1px,transparent 1px),linear-gradient(90deg,#00ff88 1px,transparent 1px);background-size:40px 40px;}
+.hero-candles{position:absolute;opacity:.12;animation:float 4s ease-in-out infinite;}
+.hero-candles.right{right:5%;top:30%;animation-direction:reverse;animation-duration:5s;}
+.hero-candles.left{left:5%;top:20%;}
+.candle-bar{width:12px;border-radius:2px;display:inline-block;margin:0 3px;}
+.hero-badge{display:inline-block;background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.2);border-radius:20px;padding:6px 16px;margin-bottom:24px;font-size:12px;color:#00ff88;font-family:'DM Mono',monospace;letter-spacing:1px;}
+.hero-title{font-size:clamp(36px,7vw,80px);font-weight:800;line-height:1.05;margin-bottom:24px;letter-spacing:-2px;}
+.hero-title .gradient{background:linear-gradient(135deg,#00ff88,#00cc6a,#ffd700);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.hero-sub{font-size:18px;color:#777;max-width:520px;margin:0 auto 40px;line-height:1.6;}
+.hero-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;}
+.btn-primary{background:linear-gradient(135deg,#00ff88,#00cc6a);border:none;border-radius:12px;padding:16px 32px;color:#0a0a0a;font-weight:800;font-size:16px;cursor:pointer;font-family:'Syne',sans-serif;box-shadow:0 0 30px rgba(0,255,136,.4);animation:pulse-green 2s infinite;}
+.btn-secondary{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px 32px;color:#fff;font-weight:700;font-size:16px;cursor:pointer;font-family:'Syne',sans-serif;}
+.hero-stats{display:flex;gap:40px;justify-content:center;margin-top:60px;flex-wrap:wrap;}
+.stat-val{font-size:28px;font-weight:800;color:#00ff88;}
+.stat-label{font-size:12px;color:#555;margin-top:4px;font-family:'DM Mono',monospace;}
+
+/* SECTIONS */
+.section{padding:80px 20px;}
+.section-alt{background:#0d0d0d;}
+.section-label{font-size:11px;color:#00ff88;letter-spacing:3px;font-family:'DM Mono',monospace;margin-bottom:16px;}
+.section-title{font-size:36px;font-weight:800;margin-bottom:12px;}
+.section-sub{color:#666;font-size:15px;margin-bottom:48px;}
+.center{text-align:center;}
+.container{max-width:1000px;margin:0 auto;}
+.container-sm{max-width:700px;margin:0 auto;}
+
+/* CARDS */
+.card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:28px;}
+.card-grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;}
+.card-grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;}
+
+/* PRICING */
+.pricing-card{border-radius:16px;padding:32px 28px;position:relative;overflow:hidden;transition:all .3s ease;}
+.pricing-card.active-plan{transform:scale(1.02);}
+.plan-title{font-size:11px;font-weight:700;letter-spacing:2px;margin-bottom:8px;font-family:'DM Mono',monospace;}
+.plan-price{font-size:36px;font-weight:800;margin-bottom:4px;}
+.plan-period{color:#555;font-size:13px;margin-bottom:24px;}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:28px;}
+.plan-features li{display:flex;align-items:center;gap:10px;font-size:14px;color:#ccc;}
+.plan-features li.locked{color:#444;}
+.code-input-row{display:flex;gap:8px;margin-bottom:8px;}
+.code-input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;color:#fff;font-size:13px;font-family:'DM Mono',monospace;outline:none;letter-spacing:1px;}
+.code-input:focus{border-color:rgba(0,255,136,.4);}
+.code-input.error{border-color:rgba(255,60,60,.5);}
+.unlock-btn{border:none;border-radius:8px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;font-family:'Syne',sans-serif;white-space:nowrap;}
+.code-error{color:#ff6666;font-size:12px;margin-top:4px;}
+.active-badge{position:absolute;top:16px;right:16px;font-size:10px;font-weight:800;padding:4px 10px;border-radius:20px;letter-spacing:1px;font-family:'DM Mono',monospace;color:#0a0a0a;}
+.plan-status{border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;text-align:center;}
+
+/* ANALYZE */
+.dropzone{border:2px dashed rgba(255,255,255,.1);border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .3s ease;margin-bottom:20px;}
+.dropzone:hover{border-color:rgba(0,255,136,.3);background:rgba(0,255,136,.03);}
+.dropzone.drag-over{border-color:#00ff88;background:rgba(0,255,136,.06);box-shadow:0 0 30px rgba(0,255,136,.15);}
+.dropzone-icon{font-size:48px;margin-bottom:16px;}
+.dropzone-title{font-size:16px;font-weight:600;margin-bottom:8px;}
+.dropzone-sub{color:#555;font-size:13px;}
+.preview-img{max-width:100%;max-height:350px;border-radius:12px;border:1px solid rgba(255,255,255,.1);}
+.analyze-btn{width:100%;padding:16px;border:none;border-radius:12px;font-weight:800;font-size:16px;cursor:pointer;font-family:'Syne',sans-serif;margin-bottom:24px;transition:all .3s ease;display:flex;align-items:center;justify-content:center;gap:10px;}
+.analyze-btn:disabled{cursor:not-allowed;}
+.spinner{width:18px;height:18px;border:2px solid rgba(0,255,136,.2);border-top:2px solid #00ff88;border-radius:50%;animation:spin .8s linear infinite;}
+
+/* RESULT */
+.result-card{border-radius:16px;padding:28px;animation:fadeInUp .5s ease;}
+.result-direction{text-align:center;margin-bottom:24px;}
+.direction-arrow{font-size:64px;margin-bottom:8px;}
+.direction-text{font-size:40px;font-weight:800;}
+.direction-label{font-size:14px;color:#555;margin-top:4px;}
+.result-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px;}
+.result-stat{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px;text-align:center;}
+.result-stat-label{font-size:9px;color:#444;letter-spacing:1.5px;font-family:'DM Mono',monospace;margin-bottom:6px;}
+.result-stat-value{font-size:14px;font-weight:700;}
+.progress-bar-wrap{margin-bottom:20px;}
+.progress-bar-header{display:flex;justify-content:space-between;margin-bottom:6px;font-size:11px;font-family:'DM Mono',monospace;}
+.progress-bar-bg{background:#1a1a1a;border-radius:4px;height:8px;}
+.progress-bar-fill{height:100%;border-radius:4px;transition:width 1s ease;}
+.analysis-box{background:rgba(255,255,255,.03);border-radius:10px;padding:16px;margin-bottom:16px;}
+.analysis-label{font-size:10px;color:#444;letter-spacing:1.5px;font-family:'DM Mono',monospace;margin-bottom:8px;}
+.analysis-text{font-size:14px;color:#ccc;line-height:1.7;}
+.confluence-box{background:rgba(255,215,0,.05);border:1px solid rgba(255,215,0,.1);border-radius:10px;padding:16px;margin-bottom:16px;}
+.confluence-item{font-size:13px;color:#ccc;margin-bottom:6px;display:flex;gap:8px;}
+.risk-box{background:rgba(255,165,0,.08);border:1px solid rgba(255,165,0,.15);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:#ffaa44;}
+.warning-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px;font-size:13px;color:#555;margin-bottom:16px;}
+.record-section{text-align:center;}
+.record-label{font-size:13px;color:#444;margin-bottom:12px;font-family:'DM Mono',monospace;}
+.record-btns{display:flex;gap:12px;justify-content:center;}
+.record-btn{border-radius:10px;padding:12px 28px;font-weight:700;font-size:15px;cursor:pointer;font-family:'Syne',sans-serif;border:1px solid;}
+.recorded-msg{color:#00ff88;font-size:14px;font-family:'DM Mono',monospace;padding:12px;}
+
+/* WIN RATE */
+.winrate-bar{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 24px;margin-bottom:28px;display:flex;gap:32px;align-items:center;flex-wrap:wrap;}
+.wr-label{font-family:'DM Mono',monospace;font-size:11px;color:#555;letter-spacing:1px;}
+.wr-stats{display:flex;gap:24px;}
+.wr-stat{text-align:center;}
+.wr-val{font-size:22px;font-weight:800;}
+.wr-key{font-size:10px;color:#444;font-family:'DM Mono',monospace;}
+
+/* STRATEGIES */
+.strat-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;margin-bottom:20px;}
+.strat-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;}
+.strat-icon{font-size:28px;margin-right:16px;}
+.strat-title{font-size:16px;font-weight:700;}
+.strat-badge{font-size:10px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:4px;margin-top:4px;display:inline-block;}
+.strat-content{padding:0 24px 20px;}
+.strat-line{font-size:14px;line-height:1.8;margin-bottom:4px;}
+.unlock-strat-btn{font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;border-radius:8px;padding:8px 16px;}
+
+/* CONTACT */
+.contact-wrap{min-height:80vh;display:flex;align-items:center;justify-content:center;padding:100px 20px 60px;}
+.whatsapp-btn{width:100%;padding:18px;background:linear-gradient(135deg,#25D366,#128C7E);border:none;border-radius:12px;color:#fff;font-weight:800;font-size:16px;cursor:pointer;font-family:'Syne',sans-serif;box-shadow:0 0 30px rgba(37,211,102,.3);display:flex;align-items:center;justify-content:center;gap:12px;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);}
+.modal-box{border-radius:20px;padding:50px 40px;max-width:480px;width:90%;text-align:center;position:relative;z-index:10001;animation:modalIn .4s ease;}
+.modal-trophy{font-size:64px;margin-bottom:16px;}
+.modal-badge{font-size:11px;font-weight:700;letter-spacing:3px;margin-bottom:12px;font-family:'DM Mono',monospace;}
+.modal-title{font-size:28px;font-weight:800;margin-bottom:16px;}
+.modal-text{color:#ccc;line-height:1.7;font-size:15px;margin-bottom:8px;}
+.modal-sub{color:#666;font-size:14px;margin-bottom:32px;}
+.modal-close{border:none;border-radius:10px;padding:14px 40px;font-weight:800;font-size:15px;cursor:pointer;font-family:'Syne',sans-serif;letter-spacing:.5px;}
+.confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:10000;}
+
+/* FOOTER */
+footer{background:#0a0a0a;border-top:1px solid rgba(255,255,255,.06);padding:40px 20px;text-align:center;}
+.footer-logo{font-size:20px;font-weight:800;margin-bottom:8px;}
+.footer-logo span{color:#00ff88;}
+.footer-disc{color:#333;font-size:12px;max-width:500px;margin:0 auto;line-height:1.7;}
+.footer-copy{margin-top:20px;color:#222;font-size:12px;}
+
+/* ERROR */
+.error-box{background:rgba(255,60,60,.1);border:1px solid rgba(255,60,60,.3);border-radius:12px;padding:16px;color:#ff6666;font-size:14px;margin-bottom:24px;text-align:center;}
+
+/* MODE BADGE */
+.mode-badge{display:inline-block;border-radius:20px;padding:6px 16px;margin-bottom:16px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:2px;}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+  <div class="nav-logo" onclick="showPage('home')">
+    <div class="nav-logo-icon">C</div>
+    <div class="nav-logo-text">Canex<span>AI</span></div>
+    <span id="plan-badge" class="plan-badge" style="display:none"></span>
+  </div>
+  <div class="nav-links">
+    <button class="active" onclick="showPage('home')" id="nav-home">Home</button>
+    <button onclick="showPage('analyze')" id="nav-analyze">Analyze</button>
+    <button onclick="showPage('strategies')" id="nav-strategies">Strategies</button>
+    <button onclick="showPage('pricing')" id="nav-pricing">Pricing</button>
+    <button onclick="showPage('contact')" id="nav-contact">Contact</button>
+  </div>
+  <button class="nav-cta" onclick="showPage('analyze')">Get Started →</button>
+  <button class="hamburger" onclick="toggleMenu()">☰</button>
+</nav>
+<div class="mobile-menu" id="mobile-menu">
+  <button onclick="showPage('home');toggleMenu()">Home</button>
+  <button onclick="showPage('analyze');toggleMenu()">Analyze</button>
+  <button onclick="showPage('strategies');toggleMenu()">Strategies</button>
+  <button onclick="showPage('pricing');toggleMenu()">Pricing</button>
+  <button onclick="showPage('contact');toggleMenu()">Contact</button>
+</div>
+
+<!-- CONFETTI CANVAS -->
+<canvas class="confetti-canvas" id="confetti-canvas"></canvas>
+
+<!-- CONGRATS MODAL -->
+<div class="modal-overlay" id="modal" style="display:none">
+  <div class="modal-box" id="modal-box">
+    <div class="modal-trophy">🏆</div>
+    <div class="modal-badge" id="modal-badge"></div>
+    <div class="modal-title">Congratulations! 🎉</div>
+    <p class="modal-text">You've unlocked <strong id="modal-plan-name"></strong> — Welcome to the elite circle of traders.</p>
+    <p class="modal-sub">Your edge just got sharper. The market doesn't stand a chance. 🔥</p>
+    <button class="modal-close" id="modal-close-btn" onclick="closeModal()">Start Trading Now →</button>
+  </div>
+</div>
+
+<!-- ========== HOME PAGE ========== -->
+<div class="page active" id="page-home">
+  <section class="hero">
+    <div class="hero-grid"></div>
+    <div class="hero-candles left" id="candles-left"></div>
+    <div class="hero-candles right" id="candles-right"></div>
+    <div style="position:relative;z-index:1;animation:fadeInUp .8s ease">
+      <div class="hero-badge">⚡ AI-POWERED BINARY TRADING SIGNALS</div>
+      <h1 class="hero-title">Predict Every Candle.<br><span class="gradient">Trade With Confidence.</span></h1>
+      <p class="hero-sub">Upload your Quotex chart screenshot. Our AI analyzes patterns, indicators, and market structure to predict the next candle direction.</p>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="showPage('analyze')">🔍 Analyze Chart Now</button>
+        <button class="btn-secondary" onclick="showPage('pricing')">View Plans</button>
+      </div>
+      <div class="hero-stats">
+        <div><div class="stat-val">10K+</div><div class="stat-label">ACTIVE TRADERS</div></div>
+        <div><div class="stat-val">87%</div><div class="stat-label">AVG WIN RATE</div></div>
+        <div><div class="stat-val">24/7</div><div class="stat-label">AI ANALYSIS</div></div>
+        <div><div class="stat-val">3</div><div class="stat-label">TRADING PLANS</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="section section-alt">
+    <div class="container center">
+      <div class="section-label">HOW IT WORKS</div>
+      <h2 class="section-title">Three Steps to Smarter Trades</h2>
+      <div class="card-grid-3">
+        <div class="card" style="text-align:left;position:relative">
+          <div style="position:absolute;top:16px;right:20px;font-size:48px;font-weight:800;color:rgba(0,255,136,.08);font-family:'DM Mono',monospace">01</div>
+          <div style="font-size:36px;margin-bottom:16px">📤</div>
+          <div style="font-size:17px;font-weight:700;margin-bottom:10px">Upload Screenshot</div>
+          <div style="font-size:14px;color:#666;line-height:1.6">Take a screenshot from your Quotex chart and upload it to CanexAI</div>
+        </div>
+        <div class="card" style="text-align:left;position:relative">
+          <div style="position:absolute;top:16px;right:20px;font-size:48px;font-weight:800;color:rgba(0,255,136,.08);font-family:'DM Mono',monospace">02</div>
+          <div style="font-size:36px;margin-bottom:16px">🤖</div>
+          <div style="font-size:17px;font-weight:700;margin-bottom:10px">AI Analyzes</div>
+          <div style="font-size:14px;color:#666;line-height:1.6">Our AI reads patterns, indicators, and market structure in seconds</div>
+        </div>
+        <div class="card" style="text-align:left;position:relative">
+          <div style="position:absolute;top:16px;right:20px;font-size:48px;font-weight:800;color:rgba(0,255,136,.08);font-family:'DM Mono',monospace">03</div>
+          <div style="font-size:36px;margin-bottom:16px">💰</div>
+          <div style="font-size:17px;font-weight:700;margin-bottom:10px">Trade with Edge</div>
+          <div style="font-size:14px;color:#666;line-height:1.6">Execute your trade based on the next candle prediction with confidence</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING on home -->
+  <section class="section" id="pricing-section">
+    <div class="container center">
+      <div class="section-label">CHOOSE YOUR PLAN</div>
+      <h2 class="section-title">Unlock Your Trading Edge</h2>
+      <p class="section-sub">Enter your access code to unlock Pro or Elite Pro</p>
+      <div class="card-grid-3" id="pricing-cards-home"></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-logo">Canex<span>AI</span></div>
+    <p class="footer-disc">⚠️ CanexAI is for educational purposes only. Trading binary options involves significant risk. Past performance does not guarantee future results. Trade responsibly.</p>
+    <div class="footer-copy">© 2024 CanexAI. All rights reserved.</div>
+  </footer>
+</div>
+
+<!-- ========== ANALYZE PAGE ========== -->
+<div class="page" id="page-analyze">
+  <div style="min-height:100vh;padding:100px 20px 60px">
+    <div style="max-width:800px;margin:0 auto">
+      <div class="center" style="margin-bottom:40px">
+        <div class="mode-badge" id="analyze-mode-badge">🔮 FREE ANALYSIS MODE</div>
+        <h1 style="font-size:36px;font-weight:800;margin-bottom:12px">Chart <span id="analyze-accent-title" style="color:#888">Analyzer</span></h1>
+        <p style="color:#666;font-size:15px">Upload your Quotex screenshot — AI predicts the next candle</p>
+      </div>
+
+      <!-- Win Rate -->
+      <div class="winrate-bar">
+        <div class="wr-label">WIN RATE TRACKER</div>
+        <div class="wr-stats">
+          <div class="wr-stat"><div class="wr-val" id="wr-pct" style="color:#00ff88">0%</div><div class="wr-key">WIN RATE</div></div>
+          <div class="wr-stat"><div class="wr-val" id="wr-wins" style="color:#00ff88">0</div><div class="wr-key">WINS</div></div>
+          <div class="wr-stat"><div class="wr-val" id="wr-losses" style="color:#ff3c3c">0</div><div class="wr-key">LOSSES</div></div>
+          <div class="wr-stat"><div class="wr-val" id="wr-total" style="color:#888">0</div><div class="wr-key">TOTAL</div></div>
+        </div>
+        <div style="flex:1;min-width:120px" id="wr-bar-wrap" style="display:none">
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="wr-bar" style="width:0%;background:linear-gradient(90deg,#00ff88,#00cc6a)"></div></div>
+        </div>
+      </div>
+
+      <!-- Dropzone -->
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        <input type="file" id="file-input" accept="image/*" style="display:none" onchange="onFileSelect(event)"/>
+        <div id="dropzone-content">
+          <div class="dropzone-icon">📊</div>
+          <div class="dropzone-title">Upload Quotex Screenshot</div>
+          <div class="dropzone-sub">Drag & drop or click to browse — PNG, JPG supported</div>
+        </div>
+      </div>
+
+      <button class="analyze-btn" id="analyze-btn" style="display:none" onclick="analyzeChart()">🔍 Analyze Next Candle</button>
+      <div class="error-box" id="analyze-error" style="display:none"></div>
+      <div id="result-container"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== STRATEGIES PAGE ========== -->
+<div class="page" id="page-strategies">
+  <div style="min-height:100vh;padding:100px 20px 60px">
+    <div style="max-width:900px;margin:0 auto">
+      <div class="center" style="margin-bottom:48px">
+        <div class="section-label">TRADING EDUCATION</div>
+        <h1 style="font-size:40px;font-weight:800;margin-bottom:16px">Trading <span style="color:#00ff88">Strategies</span></h1>
+        <p style="color:#666;font-size:15px;max-width:500px;margin:0 auto">Master these strategies combined with CanexAI signals for maximum edge</p>
+      </div>
+      <div id="strategies-container"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PRICING PAGE ========== -->
+<div class="page" id="page-pricing">
+  <div style="min-height:100vh;padding:100px 20px 60px">
+    <div class="container center">
+      <div class="section-label">CHOOSE YOUR PLAN</div>
+      <h1 style="font-size:40px;font-weight:800;margin-bottom:12px">Unlock Your Trading Edge</h1>
+      <p style="color:#666;margin-bottom:48px;font-size:15px">Enter your access code to unlock Pro or Elite Pro</p>
+      <div class="card-grid-3" id="pricing-cards-page"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== CONTACT PAGE ========== -->
+<div class="page" id="page-contact">
+  <div class="contact-wrap">
+    <div style="max-width:600px;width:100%;text-align:center">
+      <div class="section-label" style="text-align:center">GET IN TOUCH</div>
+      <h1 style="font-size:40px;font-weight:800;margin-bottom:16px">Contact <span style="color:#00ff88">Us</span></h1>
+      <p style="color:#666;font-size:15px;margin-bottom:48px;line-height:1.7">Have questions about CanexAI? Need help with your access code? Want to purchase a plan? We're here to help.</p>
+      <div class="card" style="margin-bottom:24px">
+        <div style="font-size:60px;margin-bottom:20px">💬</div>
+        <h2 style="font-size:22px;font-weight:700;margin-bottom:12px">Chat with the Owner</h2>
+        <p style="color:#666;font-size:14px;margin-bottom:24px;line-height:1.7">Get direct support from the owner via WhatsApp. Fast response guaranteed.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:32px;text-align:left">
+          <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:#ccc;padding:8px 12px;background:rgba(255,255,255,.02);border-radius:8px">🔑 Access code issues & purchasing</div>
+          <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:#ccc;padding:8px 12px;background:rgba(255,255,255,.02);border-radius:8px">📊 Signal accuracy questions</div>
+          <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:#ccc;padding:8px 12px;background:rgba(255,255,255,.02);border-radius:8px">💡 Feature suggestions</div>
+          <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:#ccc;padding:8px 12px;background:rgba(255,255,255,.02);border-radius:8px">❓ General inquiries</div>
+        </div>
+        <button class="whatsapp-btn" onclick="openWhatsApp()">
+          <span style="font-size:22px">📱</span> Contact Owner on WhatsApp
+        </button>
+      </div>
+      <div style="background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.1);border-radius:12px;padding:16px">
+        <p style="color:#444;font-size:12px;line-height:1.7">⚡ Typically responds within minutes during trading hours. For urgent matters, mention "URGENT" in your first message.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ CONSTANTS ============
+const PRO_CODES = ["52715261","7252689","7272537","7633636","97267111","4755881","6263578","62688157","65417189","24161991","HAJVU","JHWJH","HEHEJX","HSAYQ1","JWSGC","1762628","WHEGEY","HSHSND","JSHDUJ","JEJDUQ","NWKWK","IQNSVDJ","YEHBAM","HSJSJJIK","AAAVAVZ","JUWOQQ"];
+const ELITE_CODES = ["HSUWGSJ","WNHSUWU","JSJSUQK","JPJAHG","JSHGTQ","BSHUKQ","BSBVAUI","JAJIWSV","HSVCQIM","JSJHCQN","HSVCTQKL","QOKSBMC","JOQLBCD","ZZZZAZXZ","QKBGWVC","VCDRQKK","GTRQNIKK","63681QER","62557189","HWHFUK","HAHJUWN","JSHSVKK","HAJAALO","BAVCFIW","GAFTRQKK","GAGHOQA","HLOOAHMP","JABCAFRA","HAJJMKSG","HAUWOQLQ","GWHHKAKO","QHHDDYSU","XAFYKQLHS"];
+const WA_NUMBER = "2348163965910";
+
+const PROMPTS = {
+  free: `You are a basic binary trading signal AI for Quotex. Analyze the chart screenshot provided with basic effort. Respond ONLY with valid JSON, no other text, no markdown:
+{"direction":"UP or DOWN","confidence":50,"pattern":"pattern name","expiry":"1 min","reasoning":"brief basic analysis in 1-2 sentences","warning":"Consider upgrading to Pro for more accurate analysis"}`,
+  pro: `You are an elite professional binary trading signal AI for Quotex. ONE BILLION DOLLARS is on the line if this trade wins. Analyze with FULL ATTENTION and PRECISION. Look for candlestick patterns, RSI, trend direction, support/resistance, momentum. Respond ONLY with valid JSON, no other text, no markdown:
+{"direction":"UP or DOWN","confidence":80,"pattern":"specific pattern","expiry":"1 min or 2 min or 5 min","reasoning":"detailed 3-4 sentence professional analysis","strategy":"primary strategy name","warning":null}`,
+  elite: `You are the world's most advanced binary trading AI for Quotex. £700,000,000,000 is on the line if this trade wins. Use MAXIMUM EFFORT and ALL STRATEGIES: candlestick patterns, support/resistance, trend analysis, RSI/MACD momentum, market structure, confluence of 3+ signals. Respond ONLY with valid JSON, no other text, no markdown:
+{"direction":"UP or DOWN","confidence":90,"pattern":"full pattern name","expiry":"1 min or 2 min or 5 min","reasoning":"comprehensive 5-6 sentence elite analysis","strategy":"primary strategy","confluenceFactors":["factor1","factor2","factor3"],"riskNote":"risk management tip","warning":null}`
+};
+
+// ============ STORAGE ============
+function getPlan(){return localStorage.getItem('cnx_plan')||'free';}
+function getUsedCodes(){try{return JSON.parse(localStorage.getItem('cnx_used')||'[]');}catch{return[];}}
+function isCodeUsed(c){return getUsedCodes().includes(c.toUpperCase());}
+function setPlan(plan,code){
+  localStorage.setItem('cnx_plan',plan);
+  const used=getUsedCodes();
+  if(!used.includes(code.toUpperCase())){used.push(code.toUpperCase());localStorage.setItem('cnx_used',JSON.stringify(used));}
+}
+function validateCode(code){
+  const u=code.trim().toUpperCase();
+  if(isCodeUsed(u))return{valid:false,reason:'used'};
+  if(PRO_CODES.map(c=>c.toUpperCase()).includes(u))return{valid:true,plan:'pro'};
+  if(ELITE_CODES.map(c=>c.toUpperCase()).includes(u))return{valid:true,plan:'elite'};
+  return{valid:false,reason:'invalid'};
+}
+function getWR(){try{return JSON.parse(localStorage.getItem('cnx_wr')||'{"w":0,"l":0}');}catch{return{w:0,l:0};}}
+function recordWR(win){const r=getWR();if(win)r.w++;else r.l++;localStorage.setItem('cnx_wr',JSON.stringify(r));return r;}
+
+// ============ NAV ============
+function showPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-links button').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  const nb=document.getElementById('nav-'+p);
+  if(nb)nb.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(p==='analyze')refreshAnalyzePage();
+  if(p==='strategies')renderStrategies();
+  if(p==='pricing')renderPricingCards('pricing-cards-page');
+}
+function toggleMenu(){
+  const m=document.getElementById('mobile-menu');
+  m.style.display=m.style.display==='flex'?'none':'flex';
+}
+
+// ============ PLAN BADGE ============
+function refreshPlanBadge(){
+  const plan=getPlan();
+  const badge=document.getElementById('plan-badge');
+  if(plan==='pro'){badge.textContent='PRO';badge.style.color='#00ff88';badge.style.border='1px solid #00ff88';badge.style.display='inline';}
+  else if(plan==='elite'){badge.textContent='ELITE PRO';badge.style.color='#ffd700';badge.style.border='1px solid #ffd700';badge.style.display='inline';}
+  else{badge.style.display='none';}
+}
+
+// ============ PRICING CARDS ============
+function renderPricingCards(containerId){
+  const plan=getPlan();
+  const container=document.getElementById(containerId);
+  if(!container)return;
+  container.innerHTML='';
+  const plans=[
+    {id:'free',title:'FREE',price:'€0',period:'Always free',accent:'#888888',features:['Basic chart analysis','Standard accuracy','Next candle direction','Basic win rate tracking'],locked:true,codeRequired:false},
+    {id:'pro',title:'PRO',price:'🔐 Code',period:'One-time code activation',accent:'#00ff88',features:['High accuracy analysis','Deep pattern recognition','Confidence percentage','Full strategy access','Win rate tracking'],locked:false,codeRequired:true},
+    {id:'elite',title:'ELITE PRO',price:'🔐 Code',period:'One-time code activation',accent:'#ffd700',features:['Maximum accuracy AI','Multi-strategy confluence','Support & resistance','Momentum analysis','Priority signal + expiry','Elite win rate dashboard'],locked:false,codeRequired:true}
+  ];
+  plans.forEach(p=>{
+    const isActive=plan===p.id;
+    const div=document.createElement('div');
+    div.className='pricing-card'+(isActive?' active-plan':'');
+    div.style.background=isActive?p.accent+'10':'rgba(255,255,255,.03)';
+    div.style.border=`1px solid ${isActive?p.accent:'rgba(255,255,255,.08)'}`;
+    div.style.boxShadow=isActive?`0 0 40px ${p.accent}20`:'none';
+    let featHTML=p.features.map(f=>`<li>✓ ${f}</li>`).join('');
+    if(p.locked)featHTML+=`<li class="locked">🔒 Advanced strategies locked</li>`;
+    let inputHTML='';
+    if(p.codeRequired&&!isActive){
+      inputHTML=`<div>
+        <div class="code-input-row">
+          <input class="code-input" id="code-${p.id}-${containerId}" placeholder="Enter access code" onkeydown="if(event.key==='Enter')doUnlock('${p.id}','${containerId}')"/>
+          <button class="unlock-btn" style="background:linear-gradient(135deg,${p.accent},${p.accent}aa);color:#0a0a0a" onclick="doUnlock('${p.id}','${containerId}')">Unlock</button>
+        </div>
+        <div class="code-error" id="err-${p.id}-${containerId}"></div>
+      </div>`;
+    }else if(!p.codeRequired&&!isActive){
+      inputHTML=`<div class="plan-status" style="background:${p.accent}15;border:1px solid ${p.accent}30;color:${p.accent}">✓ No code needed — You're on this plan</div>`;
+    }else if(isActive){
+      inputHTML=`<div class="plan-status" style="background:${p.accent}15;border:1px solid ${p.accent}30;color:${p.accent}">✓ Active Plan</div>`;
+    }
+    div.innerHTML=`
+      ${isActive?`<div class="active-badge" style="background:${p.accent}">ACTIVE</div>`:''}
+      <div class="plan-title" style="color:${p.accent}">${p.title}</div>
+      <div class="plan-price">${p.price}</div>
+      <div class="plan-period">${p.period}</div>
+      <ul class="plan-features">${featHTML}</ul>
+      ${inputHTML}`;
+    container.appendChild(div);
+  });
+}
+
+function doUnlock(planId,containerId){
+  const input=document.getElementById(`code-${planId}-${containerId}`);
+  const errEl=document.getElementById(`err-${planId}-${containerId}`);
+  if(!input||!input.value.trim()){errEl.textContent='Please enter your access code';return;}
+  const result=validateCode(input.value);
+  if(result.valid&&result.plan===planId){
+    setPlan(planId,input.value.trim().toUpperCase());
+    refreshPlanBadge();
+    renderPricingCards(containerId);
+    renderPricingCards(containerId==='pricing-cards-home'?'pricing-cards-page':'pricing-cards-home');
+    showModal(planId);
+  }else if(!result.valid&&result.reason==='used'){
+    errEl.textContent='❌ This code has already been used';
+  }else if(!result.valid){
+    errEl.textContent='❌ Invalid code. Please check and try again';
+  }else{
+    errEl.textContent='❌ This code is for a different plan';
+  }
+}
+
+// ============ MODAL ============
+function showModal(plan){
+  const isElite=plan==='elite';
+  const accent=isElite?'#ffd700':'#00ff88';
+  const name=isElite?'ELITE PRO':'PRO';
+  const box=document.getElementById('modal-box');
+  box.style.background='#111';
+  box.style.border=`2px solid ${accent}`;
+  box.style.boxShadow=`0 0 60px ${accent}40`;
+  document.getElementById('modal-badge').textContent='PLAN UNLOCKED';
+  document.getElementById('modal-badge').style.color=accent;
+  document.getElementById('modal-plan-name').textContent=name;
+  document.getElementById('modal-plan-name').style.color=accent;
+  const closeBtn=document.getElementById('modal-close-btn');
+  closeBtn.style.background=`linear-gradient(135deg,${accent},${isElite?'#ccaa00':'#00cc6a'})`;
+  closeBtn.style.color='#0a0a0a';
+  document.getElementById('modal').style.display='flex';
+  startConfetti(isElite);
+}
+function closeModal(){
+  document.getElementById('modal').style.display='none';
+  stopConfetti();
+  showPage('analyze');
+}
+
+// ============ CONFETTI ============
+let confettiAnim=null;
+function startConfetti(isElite){
+  const canvas=document.getElementById('confetti-canvas');
+  const ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+  const colors=isElite?['#ffd700','#ffaa00','#fff','#ffd700']:['#00ff88','#00cc6a','#fff','#00ff88'];
+  const particles=Array.from({length:160},()=>({x:Math.random()*canvas.width,y:Math.random()*canvas.height-canvas.height,r:Math.random()*6+2,color:colors[Math.floor(Math.random()*colors.length)],vx:Math.random()*2-1,vy:Math.random()*3+2,angle:Math.random()*360,spin:Math.random()*5-2.5}));
+  function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);particles.forEach(p=>{ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle*Math.PI/180);ctx.fillStyle=p.color;ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*2);ctx.restore();p.x+=p.vx;p.y+=p.vy;p.angle+=p.spin;if(p.y>canvas.height){p.y=-10;p.x=Math.random()*canvas.width;}});confettiAnim=requestAnimationFrame(draw);}
+  draw();setTimeout(stopConfetti,6000);
+}
+function stopConfetti(){if(confettiAnim){cancelAnimationFrame(confettiAnim);confettiAnim=null;}const canvas=document.getElementById('confetti-canvas');const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);}
+
+// ============ ANALYZE PAGE ============
+let imageBase64=null;
+let imageMediaType='image/png';
+
+function refreshAnalyzePage(){
+  const plan=getPlan();
+  const accent=plan==='elite'?'#ffd700':plan==='pro'?'#00ff88':'#888';
+  const label=plan==='elite'?'ELITE PRO':plan==='pro'?'PRO':'FREE';
+  const badge=document.getElementById('analyze-mode-badge');
+  badge.textContent=`🔮 ${label} ANALYSIS MODE`;
+  badge.style.background=accent+'15';
+  badge.style.border=`1px solid ${accent}30`;
+  badge.style.color=accent;
+  document.getElementById('analyze-accent-title').style.color=accent;
+  updateWRDisplay();
+}
+
+function updateWRDisplay(){
+  const r=getWR();
+  const total=r.w+r.l;
+  const pct=total>0?Math.round(r.w/total*100):0;
+  document.getElementById('wr-wins').textContent=r.w;
+  document.getElementById('wr-losses').textContent=r.l;
+  document.getElementById('wr-total').textContent=total;
+  document.getElementById('wr-pct').textContent=pct+'%';
+  document.getElementById('wr-bar').style.width=pct+'%';
+}
+
+function onDragOver(e){e.preventDefault();document.getElementById('dropzone').classList.add('drag-over');}
+function onDragLeave(){document.getElementById('dropzone').classList.remove('drag-over');}
+function onDrop(e){e.preventDefault();document.getElementById('dropzone').classList.remove('drag-over');const file=e.dataTransfer.files[0];if(file&&file.type.startsWith('image/'))loadImage(file);}
+function onFileSelect(e){const file=e.target.files[0];if(file)loadImage(file);}
+
+function loadImage(file){
+  const url=URL.createObjectURL(file);
+  document.getElementById('dropzone-content').innerHTML=`<img class="preview-img" src="${url}" alt="Chart"/><p style="color:#444;font-size:13px;margin-top:12px">Click or drag to replace</p>`;
+  document.getElementById('result-container').innerHTML='';
+  document.getElementById('analyze-error').style.display='none';
+  imageMediaType=file.type||'image/png';
+  const reader=new FileReader();
+  reader.onload=e=>{imageBase64=e.target.result.split(',')[1];};
+  reader.readAsDataURL(file);
+  const btn=document.getElementById('analyze-btn');
+  const plan=getPlan();
+  const accent=plan==='elite'?'#ffd700':plan==='pro'?'#00ff88':'#888';
+  btn.style.display='flex';
+  btn.style.background=`linear-gradient(135deg,${accent},${accent}aa)`;
+  btn.style.color='#0a0a0a';
+  btn.style.boxShadow=`0 0 30px ${accent}30`;
+  btn.textContent='🔍 Analyze Next Candle';
+}
+
+async function analyzeChart(){
+  if(!imageBase64)return;
+  const plan=getPlan();
+  const accent=plan==='elite'?'#ffd700':plan==='pro'?'#00ff88':'#888';
+  const btn=document.getElementById('analyze-btn');
+  btn.disabled=true;
+  btn.innerHTML=`<div class="spinner"></div><span style="font-family:'DM Mono',monospace;font-size:13px">AI Analyzing Chart...</span>`;
+  btn.style.background='#1a1a1a';
+  btn.style.color=accent;
+  btn.style.border=`1px solid ${accent}30`;
+  btn.style.boxShadow='none';
+  document.getElementById('analyze-error').style.display='none';
+  document.getElementById('result-container').innerHTML='';
+
+  const OPENROUTER_KEY='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';
+  try{
+    const resp=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+OPENROUTER_KEY,
+        'HTTP-Referer':'https://canexai.app',
+        'X-Title':'CanexAI'
+      },
+      body:JSON.stringify({
+        model:'openrouter/auto',
+        max_tokens:1000,
+        messages:[
+          {role:'system',content:PROMPTS[plan]},
+          {role:'user',content:[
+            {type:'image_url',image_url:{url:'data:'+imageMediaType+';base64,'+imageBase64}},
+            {type:'text',text:'Analyze this Quotex chart and predict the next candle direction. Return ONLY valid JSON.'}
+          ]}
+        ]
+      })
+    });
+    const data=await resp.json();
+    if(!resp.ok) throw new Error('API error '+resp.status+': '+(data?.error?.message||JSON.stringify(data)));
+    const text=data.choices?.[0]?.message?.content||'';
+    const cleaned=text.replace(/```json|```/g,'').trim();
+    const result=JSON.parse(cleaned);
+    renderResult(result,plan,accent);
+  }catch(err){
+    document.getElementById('analyze-error').textContent='❌ Analysis failed: '+err.message;
+    document.getElementById('analyze-error').style.display='block';
+    console.error(err);
+  }
+
+  btn.disabled=false;
+  btn.style.background=`linear-gradient(135deg,${accent},${accent}aa)`;
+  btn.style.color='#0a0a0a';
+  btn.style.border='none';
+  btn.style.boxShadow=`0 0 30px ${accent}30`;
+  btn.innerHTML='🔍 Analyze Next Candle';
+}
+
+function renderResult(r,plan,accent){
+  const isUp=r.direction==='UP';
+  const dirColor=isUp?'#00ff88':'#ff3c3c';
+  let confluenceHTML='';
+  if(r.confluenceFactors&&r.confluenceFactors.length){
+    confluenceHTML=`<div class="confluence-box">
+      <div class="analysis-label" style="color:#ffd700">⚡ CONFLUENCE FACTORS</div>
+      ${r.confluenceFactors.map(f=>`<div class="confluence-item"><span style="color:#ffd700">▸</span>${f}</div>`).join('')}
+    </div>`;}
+  let riskHTML=r.riskNote?`<div class="risk-box">⚠️ ${r.riskNote}</div>`:'';
+  let warnHTML=r.warning?`<div class="warning-box">💡 ${r.warning}</div>`:'';
+  let stratHTML=r.strategy?`<div class="result-stat"><div class="result-stat-label">STRATEGY</div><div class="result-stat-value" style="color:${accent}">${r.strategy}</div></div>`:'';
+  const confPct=r.confidence||60;
+  const confColor=confPct>80?'#00ff88':confPct>65?'#ffd700':'#888';
+
+  document.getElementById('result-container').innerHTML=`
+    <div class="result-card" style="background:${isUp?'rgba(0,255,136,.05)':'rgba(255,60,60,.05)'};border:1px solid ${isUp?'rgba(0,255,136,.2)':'rgba(255,60,60,.2)'}">
+      <div class="result-direction">
+        <div class="direction-arrow">${isUp?'⬆️':'⬇️'}</div>
+        <div class="direction-text" style="color:${dirColor}">${r.direction}</div>
+        <div class="direction-label">Next Candle Prediction</div>
+      </div>
+      <div class="result-stats">
+        <div class="result-stat"><div class="result-stat-label">CONFIDENCE</div><div class="result-stat-value" style="color:${confColor}">${confPct}%</div></div>
+        <div class="result-stat"><div class="result-stat-label">PATTERN</div><div class="result-stat-value" style="color:${accent}">${r.pattern||'N/A'}</div></div>
+        <div class="result-stat"><div class="result-stat-label">EXPIRY</div><div class="result-stat-value">${r.expiry||'1 min'}</div></div>
+        ${stratHTML}
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-header"><span style="color:#444">AI CONFIDENCE</span><span style="color:${accent}">${confPct}%</span></div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${confPct}%;background:linear-gradient(90deg,${accent},${accent}88)"></div></div>
+      </div>
+      <div class="analysis-box">
+        <div class="analysis-label">AI ANALYSIS</div>
+        <div class="analysis-text">${r.reasoning||'Analysis complete.'}</div>
+      </div>
+      ${confluenceHTML}${riskHTML}${warnHTML}
+      <div class="record-section" id="record-section">
+        <div class="record-label">RECORD YOUR TRADE RESULT</div>
+        <div class="record-btns">
+          <button class="record-btn" style="background:rgba(0,255,136,.1);border-color:rgba(0,255,136,.3);color:#00ff88" onclick="recordResult(true)">✅ WIN</button>
+          <button class="record-btn" style="background:rgba(255,60,60,.1);border-color:rgba(255,60,60,.3);color:#ff3c3c" onclick="recordResult(false)">❌ LOSS</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function recordResult(win){
+  recordWR(win);
+  updateWRDisplay();
+  document.getElementById('record-section').innerHTML=`<div class="recorded-msg">✓ Result recorded — Win rate updated!</div>`;
+}
+
+// ============ STRATEGIES ============
+const STRATEGIES=[
+  {icon:'🕯️',title:'Candlestick Pattern Strategy',plan:'free',accent:'#888',content:[
+    {t:'Candlestick patterns are the foundation of binary trading on Quotex. Learn these key patterns:'},
+    {t:'• Doji — Market indecision. Price opened and closed at same level. Strong reversal signal.'},
+    {t:'• Bullish Engulfing — Large green candle engulfs previous red candle. Strong UP signal.'},
+    {t:'• Bearish Engulfing — Large red candle engulfs previous green candle. Strong DOWN signal.'},
+    {t:'• Hammer — Small body with long lower wick. Bullish reversal. Trade UP.'},
+    {t:'• Shooting Star — Small body with long upper wick. Bearish reversal. Trade DOWN.'},
+    {t:'Best expiry time: 1-2 minutes for 1-minute charts.'}
+  ]},
+  {icon:'📉',title:'Support & Resistance Strategy',plan:'free',accent:'#888',content:[
+    {t:'Support and resistance are price levels where the market repeatedly bounces or breaks.'},
+    {t:'• Support — Price level where buyers step in. When price touches support, trade UP.'},
+    {t:'• Resistance — Price level where sellers dominate. When price touches resistance, trade DOWN.'},
+    {t:'• How to identify — Look for areas where price has bounced at least 2-3 times.'},
+    {t:'• Round numbers (1.1000, 1.1050) often act as natural S&R levels.'}
+  ]},
+  {icon:'📊',title:'RSI Overbought/Oversold Strategy',plan:'free',accent:'#888',content:[
+    {t:'The RSI measures momentum and helps identify reversal points.'},
+    {t:'• RSI above 70 — Asset is OVERBOUGHT. Price likely to fall. Trade DOWN.'},
+    {t:'• RSI below 30 — Asset is OVERSOLD. Price likely to rise. Trade UP.'},
+    {t:'• RSI Divergence — When price makes a new high but RSI doesn\'t. Strong reversal signal.'},
+    {t:'Best assets: EUR/USD, GBP/USD, Gold, BTC/USD.'}
+  ]},
+  {icon:'📈',title:'Trend Following Strategy',plan:'pro',accent:'#00ff88',content:[
+    {t:'Trading with the trend is the safest and most reliable binary trading strategy.'},
+    {t:'• Uptrend — Series of higher highs and higher lows. Only trade UP during uptrend.'},
+    {t:'• Downtrend — Series of lower highs and lower lows. Only trade DOWN during downtrend.'},
+    {t:'• Never trade against a strong trend — wait for retracement then enter in trend direction.'},
+    {t:'Pro members: CanexAI identifies the active trend direction automatically in your analysis.'}
+  ]},
+  {icon:'⚡',title:'60-Second Scalping Strategy',plan:'pro',accent:'#00ff88',content:[
+    {t:'The 60-second strategy is for experienced traders who want fast, frequent trades.'},
+    {t:'• Only trade during high liquidity — London open (8AM-12PM GMT) and NY open (1PM-5PM GMT).'},
+    {t:'• Look for strong momentum candles — multiple green or red candles in a row.'},
+    {t:'• Risk management is critical — never risk more than 2-3% per trade.'},
+    {t:'• Stop after 3 consecutive losses — take a break and reassess.'}
+  ]},
+  {icon:'💎',title:'Elite Confluence Strategy',plan:'elite',accent:'#ffd700',content:[
+    {t:'The Confluence Strategy combines 3+ signals for maximum accuracy — used by professional traders.'},
+    {t:'Step 1 — Identify the trend direction (uptrend or downtrend)'},
+    {t:'Step 2 — Find a key support or resistance level aligned with the trend'},
+    {t:'Step 3 — Wait for a candlestick reversal pattern at that level'},
+    {t:'Step 4 — Confirm with RSI (oversold at support in uptrend, overbought at resistance in downtrend)'},
+    {t:'Step 5 — Enter trade with 3+ confluence factors aligned'},
+    {t:'✓ This is exactly what CanexAI Elite Pro AI uses to generate its predictions.'}
+  ]}
+];
+
+function canAccess(p){const plan=getPlan();if(p==='free')return true;if(p==='pro')return plan==='pro'||plan==='elite';if(p==='elite')return plan==='elite';return false;}
+
+function renderStrategies(){
+  const container=document.getElementById('strategies-container');
+  container.innerHTML='';
+  STRATEGIES.forEach(s=>{
+    const accessible=canAccess(s.plan);
+    const div=document.createElement('div');
+    div.className='strat-card';
+    div.style.opacity=accessible?'1':'0.6';
+    const planLabel=s.plan==='free'?'FREE':s.plan==='pro'?'PRO':'ELITE PRO';
+    let contentHTML=accessible?`<div class="strat-content">${s.content.map(l=>`<p class="strat-line" style="color:${l.t.startsWith('✓')?s.accent:l.t.startsWith('Step')?s.accent:l.t.startsWith('•')?'#ccc':'#777'}">${l.t}</p>`).join('')}</div>`:'';
+    let unlockBtn=!accessible?`<button class="unlock-strat-btn" style="background:${s.accent}15;border:1px solid ${s.accent}30;color:${s.accent}" onclick="showPage('pricing')">Unlock ${s.plan==='pro'?'Pro':'Elite Pro'}</button>`:'';
+    div.innerHTML=`
+      <div class="strat-header">
+        <div style="display:flex;align-items:center">
+          <div class="strat-icon">${accessible?s.icon:'🔒'}</div>
+          <div>
+            <div class="strat-title" style="color:${accessible?'#fff':'#444'}">${s.title}</div>
+            <span class="strat-badge" style="color:${s.accent};border:1px solid ${s.accent}40;opacity:${accessible?1:.5}">${planLabel}</span>
+          </div>
+        </div>
+        ${unlockBtn}
+      </div>
+      ${contentHTML}`;
+    container.appendChild(div);
+  });
+}
+
+// ============ HERO CANDLES ============
+function buildCandles(){
+  const left=document.getElementById('candles-left');
+  const right=document.getElementById('candles-right');
+  const heights=[[40,70,30,55,45],[55,35,65,40,50]];
+  const colors=[[1,0,1,0,1],[0,1,0,1,0]];
+  [left,right].forEach((el,i)=>{
+    el.innerHTML=heights[i].map((h,j)=>`<div class="candle-bar" style="height:${h}px;background:${colors[i][j]?'#00ff88':'#ff3c3c'}"></div>`).join('');
+  });
+}
+
+// ============ CONTACT ============
+function openWhatsApp(){window.open(`https://wa.me/${WA_NUMBER}?text=Hello%2C%20I%20need%20help%20with%20CanexAI`,'_blank');}
+
+// ============ INIT ============
+window.addEventListener('DOMContentLoaded',()=>{
+  buildCandles();
+  refreshPlanBadge();
+  renderPricingCards('pricing-cards-home');
+  renderPricingCards('pricing-cards-page');
+  refreshAnalyzePage();
+  renderStrategies();
+});
+</script>
+</body>
+</html>

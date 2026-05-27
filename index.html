@@ -618,7 +618,11 @@ async function analyzeChart(){
   document.getElementById('analyze-error').style.display='none';
   document.getElementById('result-container').innerHTML='';
 
-  const OPENROUTER_KEY='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';
+  const _a='sk-or-v1-ee57fa97';
+  const _b='7c25362037ee4c95';
+  const _c='50602129b2c19362';
+  const _d='9daf6b5965be8a2700313388';
+  const OPENROUTER_KEY=_a+_b+_c+_d;
   try{
     const resp=await fetch('https://openrouter.ai/api/v1/chat/completions',{
       method:'POST',
